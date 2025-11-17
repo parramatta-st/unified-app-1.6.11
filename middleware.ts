@@ -3,7 +3,14 @@ import type { NextRequest } from 'next/server';
 
 export function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
-  const authed = req.cookies.get('st_auth');
+  const authed = Boolean(req.cookies.get('st_auth')?.value);
+  const isApiRoute = pathname.startsWith('/api');
+  const isNextAsset = pathname.startsWith('/_next');
+  const isStaticFile = /\.(?:png|jpe?g|gif|svg|webp|ico|txt|xml|json|map|css|js|woff2?|ttf|otf|webmanifest)$/i.test(pathname);
+
+  if (isApiRoute || isNextAsset || isStaticFile) {
+    return NextResponse.next();
+  }
   if (pathname === '/login') {
     // Already signed in? Send to the menu instead of showing the login page again.
     if (authed) {
@@ -15,19 +22,17 @@ export function middleware(req: NextRequest) {
     return NextResponse.next();
   }
 
-  // allow public assets and api routes
-  if (pathname.startsWith('/api') || pathname.startsWith('/_next') || pathname === '/favicon.ico') {
-    return NextResponse.next();
-  }
   if (!authed) {
     const url = req.nextUrl.clone();
     url.pathname = '/login';
-    url.searchParams.set('next', pathname);
+    const destination = `${pathname}${req.nextUrl.search || ''}`;
+    url.search = '';
+    url.searchParams.set('next', destination);
     return NextResponse.redirect(url);
   }
   return NextResponse.next();
 }
 
 export const config = {
-  matcher: ['/((?!_next/|api/|favicon.ico).*)']
+  matcher: ['/:path*']
 };
