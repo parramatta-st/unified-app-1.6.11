@@ -3,11 +3,22 @@ import type { NextRequest } from 'next/server';
 
 export function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
-  // allow public assets, api, and login
-  if (pathname.startsWith('/api') || pathname.startsWith('/_next') || pathname === '/favicon.ico' || pathname === '/login') {
+  const authed = req.cookies.get('st_auth');
+  if (pathname === '/login') {
+    // Already signed in? Send to the menu instead of showing the login page again.
+    if (authed) {
+      const url = req.nextUrl.clone();
+      url.pathname = '/';
+      url.search = '';
+      return NextResponse.redirect(url);
+    }
     return NextResponse.next();
   }
-  const authed = req.cookies.get('st_auth');
+
+  // allow public assets and api routes
+  if (pathname.startsWith('/api') || pathname.startsWith('/_next') || pathname === '/favicon.ico') {
+    return NextResponse.next();
+  }
   if (!authed) {
     const url = req.nextUrl.clone();
     url.pathname = '/login';
