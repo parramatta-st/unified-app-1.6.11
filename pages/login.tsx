@@ -19,7 +19,11 @@ export default function LoginPage() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string|undefined>();
 
-  const nextPath = (router.query.next as string) || '/feedback';
+  const nextPath = useMemo(() => {
+    const fromQuery = (router.query.next as string) || '';
+    if (fromQuery && fromQuery !== '/login') return fromQuery;
+    return '/';
+  }, [router.query.next]);
   const currentTutors = useMemo(
     () => (campuses.find(c => c.id === campusId)?.tutors || []).slice().sort(),
     [campusId, campuses]
